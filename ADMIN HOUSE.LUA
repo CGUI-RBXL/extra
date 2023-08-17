@@ -218,6 +218,12 @@ game.Players.LocalPlayer.Chatted:Connect(function(msg)
         for a, _ in pairs(permBan) do
             print(a)
         end
+    elseif msg:sub(1, 7) == ">super " then
+        say(table.concat(table.create(msg:sub(8), 100)), " | ")
+    elseif msg:sub(1, 7) == ">mega " then
+        say(table.concat(table.create(msg:sub(8), 50)), " | ")
+    elseif msg:sub(1, 7) == ">mega " then
+        say(table.concat(table.create(msg:sub(8), 25)), " | ")
     end
 end)
 task.spawn(function()
