@@ -1,30 +1,44 @@
 --FUCKING HATE THIS DUDE 2246031345;
 
 local allowBuilding = true
+local removeMeshes = true
+local shortenNames = true
+local partDetection = true
+local partStuffing = 16
+local overloadInstances = true
+local overloadInstancesStuffing = 4000
+local hingeDetection = true
+local hingeRate = 12
 
 local bootCommands = {
     {false;":chatnotifyc all 0 255 0 [OVERLORD]: Loaded OVERLORD server monitor."};
     {false;":chatnotifyc all 255 255 255 [OVERLORD]: Please do not abuse or crash anyone."};
     {false;":setmessage ['OVERLORD']: Loaded, Please do not abuse or crash anyone."};
     {true;function() task.wait(5) end};
-    {false;":setmessage off"};
     {true;function()
+        local msg = ":setmessage off"
         if allowBuilding then
-            return ":chatnotifyc all 0 255 0 [SETTINGS]: building is allowed!"
+            msg ..= "| :chatnotifyc all 0 255 0 [SETTINGS]: building is allowed!"
+        else
+            msg ..= "| :chatnotifyc all 255 0 0 [SETTINGS]: building is not allowed."
         end
-        return ":chatnotifyc all 255 0 0 [SETTINGS]: building is not allowed."
+        if partDetection then
+            msg ..= "| :chatnotifyc all 255 255 255 [SETTINGS]: Only " .. partStuffing .. " parts allowed in one chunk (4x4x4)."
+        end
+        return msg
     end};
+    --{false;":chatnotifyc all 255 255 255 [SETTINGS]: Only " .. overloadInstancesStuffing .. " parts allowed."};
 }
 local buildingGrant = {
     {true;function() allowBuilding = true end};
     {false;":music 2778386920 true"};
-    {false;":chatnotifyc all 15 235 15 [OVERLORD]: THIS SERVER HAS BEEN GRANTED BUILDING PERMS BACK."};
+    {false;":chatnotifyc all 0 255 0 [OVERLORD]: THIS SERVER HAS BEEN GRANTED BUILDING PERMS BACK."};
 }
 local buildingRevoke = {
     {true;function() allowBuilding = false end};
     --{false;":music 7023635858"};
     {false;":music 2778386920 true"};
-    {false;":chatnotifyc all 235 15 15 [OVERLORD]: THIS SERVER HAS BEEN REVOKED BUILDING PERMS."};
+    {false;":chatnotifyc all 255 0 0 [OVERLORD]: THIS SERVER HAS BEEN REVOKED BUILDING PERMS."};
 }
 local crash = {
     {true;function(person) return ":loadb OVERLORD_CRASHPAD" end};
@@ -37,23 +51,76 @@ local crash = {
     {true;function(person) return ":chatnotifyc all 235 15 15 [OVERLORD]: " .. person .. " has been sent to Brazil." end};
 }
 
+local plrGui = game:GetService("Players").LocalPlayer.PlayerGui
+function descendant(parent, name)
+    local children = parent:GetChildren()
+    if #children > 0 then
+        for _, a in ipairs(children) do
+            if a.Name == name then
+                return a
+            else
+                local descendantFound = descendant(a, name)
+                if descendantFound then
+                    return descendantFound
+                end
+            end
+        end
+    end
+    return nil
+end
+local vim = game:GetService('VirtualInputManager')
+
+local function m1click(x, y) 
+    vim:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait()
+    vim:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
 function say(x)
-    local cb = game:GetService("Players").LocalPlayer.PlayerGui.Chat.Frame.ChatBarParentFrame.Frame.BoxFrame.Frame.ChatBar
-    cb.Text = x
-    cb:CaptureFocus()
-    cb:ReleaseFocus(true)
+    local cmdBox = descendant(plrGui, "ComText")
+    local exec
+    if cmdBox then
+        exec = cmdBox.Parent.Parent:FindFirstChild("Execute")
+    end
+    if exec then
+        cmdBox.Text = x
+        m1click(math.floor(exec.AbsolutePosition.X) + 1, math.floor(exec.AbsolutePosition.Y) + 51)
+    else
+        local cb = plrGui.Chat.Frame.ChatBarParentFrame.Frame.BoxFrame.Frame.ChatBar
+        local prev = cb.Text
+        cb:CaptureFocus()
+        cb.Text = "/e :cmdbox"
+        cb:ReleaseFocus(true)
+        if #prev > 0 then
+            cb:CaptureFocus()
+        end
+        cb.Text = prev
+        plrGui.ChildAdded:Wait()
+        task.wait(0.25)
+        say(x)
+    end
 end
 
 function saySeq(x, ...)
-    for _, a in ipairs(x) do
-        if a[1] then
-            local result = a[2](...)
+    local pack = ""
+    for a, b in ipairs(x) do
+        if b[1] then
+            if #pack > 0 then
+                say(pack)
+                pack = ""
+            end
+            local result = b[2](...)
             if result then
-                say("/e " .. result, "All")
+                pack ..= result .. " | "
+                say(pack)
+                pack = ""
             end
         else
-            say("/e " .. a[2], "All")
+            pack ..= b[2] .. " | "
         end
+    end
+    if #pack > 0 then
+        say(pack)
+        pack = ""
     end
 end
 
@@ -72,7 +139,7 @@ function buildClear()
         end
         pcall(function() remote:InvokeServer("Remove", removeList) end)
     else
-        say("/e :f3x")
+        say(":f3x")
         game:GetService("Players").LocalPlayer.Backpack.ChildAdded:Wait()
         task.wait(0.25)
         buildClear()
@@ -80,7 +147,7 @@ function buildClear()
 end
 
 local banList = {}
-local permBan = {}
+local permBan = {[1571050455] = true; [261470664] = true; --[[[2404242404] = true; [3894108483] = true]]}
 
 function plrAdd(plr)
     local id = plr.UserId
@@ -159,11 +226,50 @@ task.spawn(function()
         end
     end
 end)
-game:GetService("RunService").RenderStepped:Connect(function()
-    for _, a in ipairs(workspace:GetDescendants()) do
-        if a:IsA("SpecialMesh") then
-            a:Destroy()
+function makeSmartList(obj)
+    return table.concat({math.round(obj.Position.X / 4),math.round(obj.Position.Y / 4),math.round(obj.Position.Z / 4)}, ",")
+end
+function isNotPlayer(obj)
+    for _, a in ipairs(game.Players:GetPlayers()) do
+        if obj:IsDescendantOf(a.Character) then
+            return false
         end
+    end
+    return true
+end
+local dontSpam = true
+game:GetService("RunService").RenderStepped:Connect(function()
+    local smartlist = {}
+    local deleteThings = false
+    local rotates = 0
+    for _, a in ipairs(workspace:GetDescendants()) do
+        if a:IsA("SpecialMesh") and removeMeshes then
+            a:Destroy()
+        elseif a:IsA("Humanoid") and shortenNames and #a.DisplayName > 50 then
+            a.DisplayName = "DISPLAYNAME TOO LONG TO DISPLAY"
+        elseif (a:IsA("BasePart") or a:IsA("MeshPart") or a:IsA("Truss")) and isNotPlayer(a) and not (a:IsDescendantOf(workspace.SecureParts)) and partDetection and not deleteThings then
+            local smartlistItem = makeSmartList(a)
+            if smartlist[smartlistItem] then
+                smartlist[smartlistItem] += 1
+                if smartlist[smartlistItem] >= partStuffing then
+                    deleteThings = true
+                end
+            else
+                smartlist[smartlistItem] = 1
+            end
+        elseif a:IsA("Rotate") and not deleteThings then
+            rotates += 1
+            if rotates >= hingeRate then
+                deleteThings = true
+            end
+        end
+    end
+    if deleteThings and dontSpam then
+        say(":chatnotifyc all 255 0 0 [OVERLORD]: Cleared all parts to prevent server crash.")
+        dontSpam = false
+        buildClear()
+        task.wait(0.5)
+        dontSpam = true
     end
 end)
 task.spawn(function()
@@ -171,6 +277,13 @@ task.spawn(function()
         task.wait(0.25)
         if not allowBuilding then
             buildClear()
+        end
+    end
+end)
+game.CoreGui.BubbleChat.DescendantAdded:Connect(function(obj)
+    if obj:IsA("TextLabel") then
+        if #obj.Text > 200 then
+            obj.Parent.Parent.Visible = false
         end
     end
 end)
