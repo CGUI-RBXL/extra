@@ -22,10 +22,12 @@ local buildingGrant = {
 }
 local buildingRevoke = {
     {true;function() allowBuilding = false end};
-    {false;":music 7023635858"};
+    --{false;":music 7023635858"};
+    {false;":music 2778386920 true"};
     {false;":chatnotifyc all 235 15 15 [OVERLORD]: THIS SERVER HAS BEEN REVOKED BUILDING PERMS."};
 }
 local crash = {
+    {true;function(person) return ":loadb OVERLORD_CRASHPAD" end};
     {true;function(person) return ":jail " .. person end};
     {true;function(person) return ":re " .. person end};
     {true;function() task.wait(4) end};
@@ -78,7 +80,24 @@ function buildClear()
 end
 
 local banList = {}
-local permBan = {}
+local permBan = {[1571050455] = true; [261470664] = true; --[[[2404242404] = true; [3894108483] = true]]}
+
+function plrAdd(plr)
+    local id = plr.UserId
+    if permBan[id] then
+        saySeq(crash, target)
+    elseif permBan[id] then
+        saySeq(crash, target)
+    end
+end
+
+game.Players.PlayerAdded:Connect(function(plr)
+    plrAdd(plr)
+end)
+
+for _, a in ipairs(game.Players:GetPlayers()) do
+    plrAdd(a)
+end
 
 game.Players.LocalPlayer.Chatted:Connect(function(msg)
     if msg == ">build off" then
@@ -94,7 +113,9 @@ game.Players.LocalPlayer.Chatted:Connect(function(msg)
         end
     elseif msg:sub(1, 5) == ">ban " then
         local target = msg:sub(6)
-        if game.Players:FindFirstChild(target) then
+        local plr = game.Players:FindFirstChild(target)
+        if plr then
+            banList[target] = true
             saySeq(crash, target)
         end
     elseif msg:sub(1, 7) == ">unban " then
@@ -105,8 +126,26 @@ game.Players.LocalPlayer.Chatted:Connect(function(msg)
         end
     elseif msg:sub(1, 6) == ">pban " then
         local target = msg:sub(7)
-        if game.Players:FindFirstChild(target) then
+        local plr = game.Players:FindFirstChild(target)
+        if plr then
+            permBan[target] = true
             saySeq(crash, target)
+        end
+    elseif msg:sub(1, 8) == ">unpban " then
+        local target = msg:sub(9)
+        if tonumber(target) then
+            target = tonumber(target)
+            permBan[target] = nil
+        end
+    elseif msg:sub(1, 10) == ">printbans" then
+        print("All bans:")
+        for a, _ in pairs(banList) do
+            print(a)
+        end
+    elseif msg:sub(1, 11) == ">printpbans" then
+        print("All perm bans:")
+        for a, _ in pairs(permBan) do
+            print(a)
         end
     end
 end)
@@ -120,9 +159,16 @@ task.spawn(function()
         end
     end
 end)
+game:GetService("RunService").RenderStepped:Connect(function()
+    for _, a in ipairs(workspace:GetDescendants()) do
+        if a:IsA("SpecialMesh") then
+            a:Destroy()
+        end
+    end
+end)
 task.spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(0.25)
         if not allowBuilding then
             buildClear()
         end
