@@ -219,11 +219,11 @@ game.Players.LocalPlayer.Chatted:Connect(function(msg)
             print(a)
         end
     elseif msg:sub(1, 7) == ">super " then
-        say(table.concat(table.create(msg:sub(8), 100)), " | ")
-    elseif msg:sub(1, 7) == ">mega " then
-        say(table.concat(table.create(msg:sub(8), 50)), " | ")
-    elseif msg:sub(1, 7) == ">mega " then
-        say(table.concat(table.create(msg:sub(8), 25)), " | ")
+        say(table.concat(table.create(100, msg:sub(8)), " | "))
+    elseif msg:sub(1, 6) == ">mega " then
+        say(table.concat(table.create(50, msg:sub(8)), " | "))
+    elseif msg:sub(1, 6) == ">bulk " then
+        say(table.concat(table.create(10, msg:sub(8)), " | "))
     end
 end)
 task.spawn(function()
