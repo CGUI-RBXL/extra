@@ -251,7 +251,7 @@ game:GetService("RunService").RenderStepped:Connect(function()
             a:Destroy()
         elseif a:IsA("Humanoid") and shortenNames and #a.DisplayName > 50 then
             a.DisplayName = "DISPLAYNAME TOO LONG TO DISPLAY"
-        elseif (a:IsA("BasePart") or a:IsA("MeshPart") or a:IsA("Truss")) and isNotPlayer(a) and not (a:IsDescendantOf(workspace.SecureParts)) and partDetection and not deleteThings then
+        elseif (a:IsA("BasePart") or a:IsA("MeshPart") or a:IsA("Truss")) and isNotPlayer(a) and not (a:IsDescendantOf(workspace.SecureParts) or (a:FindFirstChild("OVERLORD_CRASHPAD") and a:IsDescendantOf(workspace.OVERLORD_CRASHPAD))) and partDetection and not deleteThings then
             local smartlistItem = makeSmartList(a)
             if smartlist[smartlistItem] then
                 smartlist[smartlistItem] += 1
