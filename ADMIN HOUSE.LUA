@@ -80,7 +80,7 @@ function buildClear()
 end
 
 local banList = {}
-local permBan = {[1571050455] = true; [261470664] = true; --[[[2404242404] = true; [3894108483] = true]]}
+local permBan = {}
 
 function plrAdd(plr)
     local id = plr.UserId
