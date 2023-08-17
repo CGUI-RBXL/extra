@@ -9,6 +9,11 @@ local overloadInstances = true
 local overloadInstancesStuffing = 4000
 local hingeDetection = true
 local hingeRate = 12
+local killbrickBypass = true
+
+for _, a in ipairs(workspace.SecureParts.Lava:GetChildren()) do
+    a.TouchInterest:Destroy()
+end
 
 local bootCommands = {
     {false;":chatnotifyc all 0 255 0 [OVERLORD]: Loaded OVERLORD server monitor."};
@@ -94,8 +99,7 @@ function say(x)
             cb:CaptureFocus()
         end
         cb.Text = prev
-        plrGui.ChildAdded:Wait()
-        task.wait(0.25)
+        task.wait(1)
         say(x)
     end
 end
