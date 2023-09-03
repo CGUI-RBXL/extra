@@ -1,3 +1,4 @@
+print("DOORS API v1.0 LOADED!")
 --Services
 local module_events = require(game.ReplicatedStorage.ClientModules.Module_Events)
 local localPlayer:Player = game:GetService("Players").LocalPlayer
@@ -6,14 +7,19 @@ local runService:RunService = game:GetService("RunService")
 
 --The api for the entity paths
 local pathNodes = {workspace.CurrentRooms:FindFirstChild("0").RoomEntrance}
-workspace.CurrentRooms.ChildAdded:Connect(function(room)
-	local pathfindnodes = room:WaitForChild("PathfindNodes")
-	assert(pathfindnodes, "failed to get nodes for room " .. room.Name .. ".")
-	
+workspace.CurrentRooms.ChildAdded:Connect(function(room:Model)
+	table.insert(pathNodes, room.RoomEntrance)
+	local pathfindnodes:Folder = room:WaitForChild("PathfindNodes", 5)
+	if not pathfindnodes then warn("failed to get nodes for room " .. room.Name .. ".") end
+	for _, node:BasePart in ipairs(pathfindnodes:GetChildren()) do
+		table.insert(pathNodes, node)
+	end
 end)
 runService.RenderStepped:Connect(function()
-	for _, a in ipairs(pathNodes) do
-		
+	for _, node:BasePart in ipairs(pathNodes) do
+		if node.Parent == nil then
+			table.remove(table.find(pathNodes, node))
+		end
 	end
 end)
 
@@ -32,6 +38,18 @@ local makeEvent = function()
 end
 local blF = function()
 	return function()end
+end
+local getRoom = function(a)
+	local oldObject = a
+	while a ~= workspace.CurrentRooms do
+		oldObject = a
+		if a == game then
+			warn("getRoom reaches game from " a:GetFullName .. ".")
+			return nil
+		end
+		a = a.Parent
+	end
+	return oldObject
 end
 
 --Creates a new entity
@@ -120,6 +138,7 @@ class.new = function(model:Model)
 		entityModel:PivotTo(pathNodes[node])
 		rayParams.FilterDescendantsInstances = workspace.CurrentRooms:GetDescendants()
 		table.insert(rayParams.FilterDescendantsInstances, localPlayer.Character.Humanoid.RootPart)
+		local inRoom = -1
 		local renderSteppedEntity = runService.RenderStepped:Connect(function()
 			if localPlayer:GetAttribute("Alive") then
 				if (movingPart.Position - localPlayer.Character.Humanoid.RootPart.Position).Magnitude <= object.properties.sight then
@@ -132,6 +151,21 @@ class.new = function(model:Model)
 						end
 						backendEvents.kill.fire()
 						object.callbacks.postKill()
+					end
+				end
+			end
+			if object.properties.breakLights then
+				local floorCast = workspace:Raycast(movingPart.Position, Vector3.yAxis * -25)
+				if floorCast and floorCast.Instance then
+					local room = getRoom(floorCast.Instance)
+					if room then
+						local roomNumber = tonumber(room.Name)
+						if roomNumber then
+							if roomNumber ~= inRoom then
+								inRoom = roomNumber
+								module_events.shatter(roomNumber)
+							end
+						end
 					end
 				end
 			end
